@@ -1,8 +1,11 @@
-# eaai25_complex_A2V
-Semantically Complex Audio to Video Generation with Audio Source Separation
+# Semantically Complex Audio to Video Generation with Audio Source Separation
+![figure2](https://github.com/user-attachments/assets/bdd808ef-4035-400a-8909-1670db63f99d)
+
+- Abstract: Recent advancements in artificial intelligence for audio-to-video generation have shown the ability to generate high-quality videos from audio, particularly by focusing on temporal semantics and magnitude. However, existing works struggle to capture all semantics from audio, as real world audios often consist of mixed sources, making it challenging to generate semantically aligned videos. To solve this problem, we present a novel multi-source audio-to-video generation framework that incorporates decomposed multiple audio sources into video generative models. Specifically, our proposed Attention Mosaic directly maps each decomposed audio feature to the corresponding spatial attention feature. In addition, our condition injection module is helpful for producing more natural contexts with non-audible objects by leveraging the knowledge of existing generative models. Our experiments show that the proposed framework achieves state-of-the-art performance in representing both multi- and single-source audio-to-video generation methods.
 
 ## Getting Started
 ### Installation
+Our code is tested on Ubuntu 20.04 and cuda 11.8
 - Follow the steps below:
 ```bash
 $ conda create --name Maestro python==3.10.0
@@ -21,7 +24,7 @@ Clone the ImageBind repository, then replace the original ```imagebind_model.py`
 ```bash
 $ mkdir checkpoints/cim
 ```
-Place downloaded weights under "./checkpoints/cim" folder.
+Place downloaded weights under "./checkpoints/cim" folder. (trained on VGGSound & Landscape dataset)
 
 2. Download Link(Video diffusion weights) : https://huggingface.co/VideoCrafter/VideoCrafter2/blob/main/model.ckpt
 
@@ -40,7 +43,9 @@ Place downloaded weights under "./checkpoints" folder.
 ```bash
 $ bash train.sh
 ```
-If you want to use a custom dataset, only videos shorter than 10 seconds are allowed, and they should be prepared separately as frames and audio.
+
+### Preprocess Data
+If you want to use custom datasets, only videos shorter than 10 seconds are allowed, and they should be prepared separately as frames and audio.
 ```plaintext
 dataset/
 ├── video_001/
@@ -63,5 +68,11 @@ Specify the dataset folder path for ```--data_dir```
 ```bash
 $ bash scripts/run.sh
 ```
-The ```--pos``` option represents the position of the bounding box, and you should choose between ```LR (Left & Right) or TD (Top & Down)```.
+The ```--pos``` option represents the position of the bounding box, and you should choose between ```"LR" (Left & Right) or "TD" (Top & Down)```.
 
+## Acknowlegement
+Our code is based on several interesting and helpful projects:
+- VideoCrafter : https://github.com/AILab-CVC/VideoCrafter
+- ImageBindhttps : https://github.com/facebookresearch/ImageBind
+- TrailBlazer : https://github.com/hohonu-vicml/Trailblazer
+- Perceiver : https://github.com/lucidrains/perceiver-pytorch
