@@ -44,25 +44,30 @@ Place downloaded weights under "./checkpoints" folder.
 $ bash train.sh
 ```
 
-### Preprocess Data
-If you want to use custom datasets, only videos shorter than 10 seconds are allowed, and they should be prepared separately as frames and audio.
+### Dataset Download
+- VGGSound : https://github.com/hche11/VGGSound
+- Landscape : https://kuai-lab.github.io/eccv2022sound/
+
+Preprocess the downloaded dataset as follows:
 ```plaintext
-dataset/
+PROJECT_ROOT/dataset/
 ├── video_001/
-│   ├── frame_0001.jpg
-│   ├── frame_0002.jpg
+│   ├── 00001.jpg
+│   ├── 00002.jpg
 │   ├── ...
-│   ├── frame_N.jpg
-│   ├── audio_001.wav
+│   ├── 0000N.jpg
+│   ├── video_001.wav
 ├── video_002/
-│   ├── frame_0001.jpg
-│   ├── frame_0002.jpg
+│   ├── 00001.jpg
+│   ├── 00002.jpg
 │   ├── ...
-│   ├── frame_N.jpg
-│   ├── audio_002.wav
+│   ├── 0000N.jpg
+│   ├── video_002.wav
 └── ...
 ```
-Specify the dataset folder path for ```--data_dir```
+Specify the dataset folder path(PROJECT_ROOT/dataset) for ```--data_dir```
+
+If you want to use custom datasets, only videos shorter than 10 seconds are allowed, and they should be prepared separately as frames and audio.
 
 ## Inference
 ```bash
