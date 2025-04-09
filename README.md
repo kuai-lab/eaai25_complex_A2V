@@ -24,7 +24,8 @@ Clone the ImageBind repository, then replace the original ```imagebind_model.py`
 ### Download Pretrained Model
 1. Download Link : [Condition Injection Module weights](https://drive.google.com/file/d/189-AZzkyNbqoprN44lwgNvO7wbtM0z9Z/view?usp=sharing)
 ```bash
-$ mkdir checkpoints/cim
+$ mkdir checkpoints
+$ mkdir cim
 ```
 Place downloaded weights under "./checkpoints/cim" folder. (trained on VGGSound & Landscape dataset)
 
