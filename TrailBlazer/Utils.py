@@ -30,30 +30,41 @@ def keyframed_bbox(bundle, frames):
 
     return bbox_per_frame
 
-def dd_core(attention_probs: torch.Tensor, dim_x, dim_y, num_frames, bundle, bbox_per_frame, strengthen_scale, weaken_scale, ):
+def dd_core(attention_probs: torch.Tensor, dim_x, dim_y, num_frames, bundle, bbox_per_frame, strengthen_scale, weaken_scale,pos):
         attention_probs_copied = attention_probs.detach().clone()
-
+        
         # NOTE: Spatial cross attention editing
         if len(attention_probs.size()) == 4:    
             all_tokens_inds = list(range(1,21))
             """
             left top right down
             """
-            # bbox_left=list()
-            # for _ in range(num_frames):
-            #     bbox_left.append([0.0, 0.3, 0.5, 0.7])
+            if pos == "LR":
+                print("Left & Right")
+                bbox_left=list()
+                for _ in range(num_frames):
+                    bbox_left.append([0.0, 0.3, 0.5, 0.7])
 
-            # bbox_right=list()
-            # for _ in range(num_frames):
-            #     bbox_right.append([0.5, 0.3, 1.0, 0.7])
+                bbox_right=list()
+                for _ in range(num_frames):
+                    bbox_right.append([0.5, 0.3, 1.0, 0.7])
 
-            bbox_top=list()
-            for _ in range(num_frames):
-                bbox_top.append([0.0, 0.0, 1.0, 0.4])
+                bbox_1 = bbox_left
+                bbox_2 = bbox_right
 
-            bbox_down=list()
-            for _ in range(num_frames):
-                bbox_down.append([0.0, 0.4, 1.0, 1.0])
+            elif pos == "TD":
+                print("Top & Down")
+
+                bbox_top=list()
+                for _ in range(num_frames):
+                    bbox_top.append([0.0, 0.0, 1.0, 0.4])
+
+                bbox_down=list()
+                for _ in range(num_frames):
+                    bbox_down.append([0.0, 0.4, 1.0, 1.0])
+                
+                bbox_1 = bbox_top
+                bbox_2 = bbox_down
 
             # bbox_tl=list()
             # for _ in range(num_frames):
@@ -75,7 +86,7 @@ def dd_core(attention_probs: torch.Tensor, dim_x, dim_y, num_frames, bundle, bbo
             strengthen_map1 = localized_weight_map(
                 attention_probs_copied,
                 token_inds=all_tokens_inds,
-                bbox_per_frame=bbox_top,
+                bbox_per_frame=bbox_1,
                 dim_x = dim_x,
                 dim_y = dim_y
             )
@@ -83,7 +94,7 @@ def dd_core(attention_probs: torch.Tensor, dim_x, dim_y, num_frames, bundle, bbo
             strengthen_map2 = localized_weight_map(
                 attention_probs_copied,
                 token_inds=all_tokens_inds,
-                bbox_per_frame=bbox_down,
+                bbox_per_frame=bbox_2,
                 dim_x = dim_x,
                 dim_y = dim_y
             )            
