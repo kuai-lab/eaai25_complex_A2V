@@ -228,6 +228,7 @@ class DDIMSampler(object):
         else:
             ### do_classifier_free_guidance
             if isinstance(c, dict) and step < args.step_ctrl:
+            
                 e_t = self.model.apply_model(x, t, c, use_injection=True, pos=args.pos, **kwargs)
                 e_t_uncond = self.model.apply_model(x, t, unconditional_conditioning, e_t_uc=True, **kwargs)
             elif isinstance(c, dict):
