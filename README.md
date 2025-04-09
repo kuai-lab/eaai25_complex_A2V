@@ -14,7 +14,7 @@ $ conda create --name Maestro python==3.10.0
 $ conda activate Maestro
 $ pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu118
 $ pip install -r requirements.txt
-$ pip install pyyaml omegaconf pytorch_lightning discord opencv-python einops timm
+$ pip install pyyaml omegaconf pytorch_lightning discord opencv-python einops timm decord pytorchvideo librosa kornia transformer
 $ pip install open-clip-torch==2.24.0
 $ git clone https://github.com/facebookresearch/ImageBind.git
 ```
