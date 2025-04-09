@@ -38,10 +38,6 @@ $ mkdir base_512_v2
 ```
 Place downloaded weights under "./checkpoints/base_512_v2" folder.
 
-3. Download Link(ImageBind weights) : https://github.com/facebookresearch/ImageBind?tab=readme-ov-file
-
-Place downloaded weights under "./checkpoints" folder.
-
 
 ## Training Condition Injection Module
 ```bash
