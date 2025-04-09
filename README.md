@@ -16,6 +16,7 @@ $ pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url htt
 $ pip install -r requirements.txt
 $ pip install pyyaml omegaconf pytorch_lightning discord opencv-python einops timm decord pytorchvideo librosa kornia transformer
 $ pip install open-clip-torch==2.24.0
+$ pip install av==11.0.0
 $ git clone https://github.com/facebookresearch/ImageBind.git
 ```
 
