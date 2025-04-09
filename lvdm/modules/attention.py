@@ -80,8 +80,8 @@ class CrossAttention(nn.Module):
         self.injection=injection
 
     # Temporal Attention
-    def forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,
-                bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False,pos=None):
+    def forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False, pos=None,
+                bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False):
         if bundle is not None:
             strengthen_scale=bundle["trailblazer"]["temp_strengthen_scale"]
             weaken_scale=bundle["trailblazer"]["temp_weaken_scale"]
@@ -125,7 +125,7 @@ class CrossAttention(nn.Module):
                             temporal_attn = rearrange(origin_attn, '(h y x) f_1 f_2 -> h y x f_1 f_2', h=self.heads, y=40, x=64, f_1=16, f_2=16)
                             temporal_attn = torch.transpose(temporal_attn, 1, 2)
                             temporal_attn = dd_core(temporal_attn, 40, 64, frames, bundle, bbox_per_frame, 
-                                                    strengthen_scale, weaken_scale)
+                                                    strengthen_scale, weaken_scale,pos)
                             temporal_attn = torch.transpose(temporal_attn, 1, 2)
                             temporal_attn = rearrange(temporal_attn, 'h y x f_1 f_2 -> (h y x) f_1 f_2', h=self.heads, y=40, x=64, f_1=16, f_2=16)
                             return temporal_attn
@@ -142,17 +142,21 @@ class CrossAttention(nn.Module):
 
         ## 16 Frame Video
         else:    
+            
             q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=self.heads), (q, k, v))
             sim = torch.einsum('b i d, b j d -> b i j', q, k) * self.scale
             del k
+            
             if sim.shape[0] == 20480 and e_t_uc == True:
                 frames = len(bbox_per_frame)
+            
                 if use_injection:
+                    
                     def temporal_doit(origin_attn):
                         temporal_attn = rearrange(origin_attn, '(h y x) f_1 f_2 -> h y x f_1 f_2', h=self.heads, y=40, x=64, f_1=16, f_2=16)
                         temporal_attn = torch.transpose(temporal_attn, 1, 2)
                         temporal_attn = dd_core(temporal_attn, 40, 64, frames, bundle, bbox_per_frame, 
-                                                strengthen_scale, weaken_scale)
+                                                strengthen_scale, weaken_scale,pos)
                         temporal_attn = torch.transpose(temporal_attn, 1, 2)
                         temporal_attn = rearrange(temporal_attn, 'h y x f_1 f_2 -> (h y x) f_1 f_2', h=self.heads, y=40, x=64, f_1=16, f_2=16)
                         return temporal_attn
@@ -164,8 +168,8 @@ class CrossAttention(nn.Module):
         return self.to_out(out)
     
     # Spatial Attention
-    def efficient_forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,
-                          bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False, pos=None):
+    def efficient_forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,pos=None,
+                          bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False):
         q = self.to_q(x)
         if context is not None:
             is_context = True
@@ -204,7 +208,7 @@ class CrossAttention(nn.Module):
             sim.shape[0], dim_y, dim_x, sim.shape[-1]
             )
             attention_probs_4d = dd_core(attention_probs_4d, dim_x, dim_y, frames, bundle, bbox_per_frame, 
-                                        strengthen_scale, weaken_scale)
+                                        strengthen_scale, weaken_scale,pos)
             sim = attention_probs_4d.reshape(
                 attention_probs_4d.shape[0], dim_y * dim_x, attention_probs_4d.shape[-1]
             )
@@ -271,88 +275,7 @@ class CrossAttention(nn.Module):
                     out = torch.cat((out1,out2), dim=1)
                     out = rearrange(out, 'b h w d -> b (h w) d')
 
-                # ## Up & Down_Left & Down_Right--------------
-                # n = q.shape[2] // 2
-                # n_1 = int(q.shape[1] * 0.4)
-                # n_2 = int(q.shape[1] * 0.6)
-
-                # q_1 = q[:,:n_1]
-                # q_2_1 = q[:,-n_2:,:n]
-                # q_2_2 = q[:,-n_2:,n:]
-                
-                # q_1, q_2_1, q_2_2 = map(lambda t: rearrange(t, 'b h w d -> b (h w) d', b=q.shape[0], d=q.shape[3]), (q_1, q_2_1, q_2_2))
-
-                # k_1 = uc_emb_copied_k.detach().clone()
-                # k_2_1 = uc_emb_copied_k.detach().clone()
-                # k_2_2 = uc_emb_copied_k.detach().clone()
-                # v_1 = uc_emb_copied_v.detach().clone()
-                # v_2_1 = uc_emb_copied_v.detach().clone()
-                # v_2_2 = uc_emb_copied_v.detach().clone()
-                # k_1[:,1:11] = k[:,1:11]
-                # k_2_1[:,1:11] = k[:,11:21]
-                # k_2_2[:,1:11] = k[:,21:31]
-                # v_1[:,1:11] = v[:,1:11]
-                # v_2_1[:,1:11] = v[:,11:21]
-                # v_2_2[:,1:11] = v[:,21:31]
-
-                # out1 = xformers.ops.memory_efficient_attention(q_1, k_1, v_1, attn_bias=None, op=None)
-                # out2_1 = xformers.ops.memory_efficient_attention(q_2_1, k_2_1, v_2_1, attn_bias=None, op=None)
-                # out2_2 = xformers.ops.memory_efficient_attention(q_2_2, k_2_2, v_2_2, attn_bias=None, op=None)
-                # out1 = rearrange(out1, 'b (h w) d -> b h w d', b=out1.shape[0], h=n_1, w=dim_x, d=out1.shape[2])
-                # out2_1 = rearrange(out2_1, 'b (h w) d -> b h w d', b=out1.shape[0], h=n_2, w=n, d=out2_1.shape[2])
-                # out2_2 = rearrange(out2_2, 'b (h w) d -> b h w d', b=out1.shape[0], h=n_2, w=n, d=out2_2.shape[2])
-                # out2 = torch.cat((out2_1,out2_2), dim=2)
-                # out = torch.cat((out1,out2), dim=1)
-                # out = rearrange(out, 'b h w d -> b (h w) d')
-                ## ----------------------------------------
-
-                ## Up_Left & Up_Right & Down_Left & Down_Right--------------
-                # n = q.shape[2] // 2
-                # n_1 = int(q.shape[1] * 0.4)
-                # n_2 = int(q.shape[1] * 0.6)
-
-                # q_1_1 = q[:,:n_1,:n]
-                # q_1_2 = q[:,:n_1,n:]
-                # q_2_1 = q[:,-n_2:,:n]
-                # q_2_2 = q[:,-n_2:,n:]
-                
-                # q_1_1, q_1_2, q_2_1, q_2_2 = map(lambda t: rearrange(t, 'b h w d -> b (h w) d', b=q.shape[0], d=q.shape[3]), (q_1_1, q_1_2, q_2_1, q_2_2))
-
-                # k_1_1 = uc_emb_copied_k.detach().clone()
-                # k_1_2 = uc_emb_copied_k.detach().clone()
-                # k_2_1 = uc_emb_copied_k.detach().clone()
-                # k_2_2 = uc_emb_copied_k.detach().clone()
-                # v_1_1 = uc_emb_copied_v.detach().clone()
-                # v_1_2 = uc_emb_copied_v.detach().clone()
-                # v_2_1 = uc_emb_copied_v.detach().clone()
-                # v_2_2 = uc_emb_copied_v.detach().clone()
-                # k_1_1[:,1:11] = k[:,1:11]
-                # k_1_2[:,1:11] = k[:,11:21]
-                # k_2_1[:,1:11] = k[:,21:31]
-                # k_2_2[:,1:11] = k[:,31:41]
-                # v_1_1[:,1:11] = v[:,1:11]
-                # v_1_2[:,1:11] = v[:,11:21]
-                # v_2_1[:,1:11] = v[:,21:31]
-                # v_2_2[:,1:11] = v[:,31:41]
-
-                # out1_1 = xformers.ops.memory_efficient_attention(q_1_1, k_1_1, v_1_1, attn_bias=None, op=None)
-                # out1_2 = xformers.ops.memory_efficient_attention(q_1_2, k_1_2, v_1_2, attn_bias=None, op=None)
-                # out2_1 = xformers.ops.memory_efficient_attention(q_2_1, k_2_1, v_2_1, attn_bias=None, op=None)
-                # out2_2 = xformers.ops.memory_efficient_attention(q_2_2, k_2_2, v_2_2, attn_bias=None, op=None)
-
-                # out1_1 = rearrange(out1_1, 'b (h w) d -> b h w d', b=out1_1.shape[0], h=n_1, w=n, d=out1_1.shape[2])
-                # out1_2 = rearrange(out1_2, 'b (h w) d -> b h w d', b=out1_2.shape[0], h=n_1, w=n, d=out1_2.shape[2])
-                # out2_1 = rearrange(out2_1, 'b (h w) d -> b h w d', b=out2_1.shape[0], h=n_2, w=n, d=out2_1.shape[2])
-                # out2_2 = rearrange(out2_2, 'b (h w) d -> b h w d', b=out2_2.shape[0], h=n_2, w=n, d=out2_2.shape[2])
-
-                # out1 = torch.cat((out1_1,out1_2), dim=2)
-                # out2 = torch.cat((out2_1,out2_2), dim=2)
-                # out = torch.cat((out1,out2), dim=1)
-                # out = rearrange(out, 'b h w d -> b (h w) d')
-                ## ----------------------------------------
-
             else:
-                breakpoint()
                 out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=None)
  
         if exists(mask):
@@ -385,11 +308,12 @@ class BasicTransformerBlock(nn.Module):
         self.norm3 = nn.LayerNorm(dim)
         self.checkpoint = checkpoint
 
-    def forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,
+    def forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,pos=None,
                 bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False,
                  **kwargs):
         ## implementation tricks: because checkpointing doesn't support non-tensor (e.g. None or scalar) arguments
         input_tuple = (x,)      ## should not be (x), otherwise *input_tuple will decouple x into multiple arguments
+     
         if context is not None:
             input_tuple = (x, context)
         if mask is not None:
@@ -397,15 +321,15 @@ class BasicTransformerBlock(nn.Module):
             return checkpoint(forward_mask, (x,), self.parameters(), self.checkpoint)
         if context is not None and mask is not None:
             input_tuple = (x, context, mask)
-        ## For NeurIPS2024
-        input_tuple = (x, context, mask, toeplitz_matric, context_next, prompt_mp_info, use_injection, bundle, bbox_per_frame, e_t_uc, uc_emb_copied, step)
+        ## Modify
+        input_tuple = (x, context, mask, toeplitz_matric, context_next, prompt_mp_info, use_injection,pos, bundle, bbox_per_frame, e_t_uc, uc_emb_copied, step)
         return checkpoint(self._forward, input_tuple, self.parameters(), self.checkpoint)
 
-    def _forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False,
+    def _forward(self, x, context=None, mask=None, toeplitz_matric=None, context_next=None, prompt_mp_info=None, use_injection=False, pos=None,
                  bundle=None, bbox_per_frame=None, e_t_uc=False, uc_emb_copied=None, step=False):
-        x = self.attn1(self.norm1(x), context=context if self.disable_self_attn else None, mask=mask, toeplitz_matric=toeplitz_matric, context_next=context_next, prompt_mp_info=prompt_mp_info, use_injection=use_injection,
+        x = self.attn1(self.norm1(x), context=context if self.disable_self_attn else None, mask=mask, toeplitz_matric=toeplitz_matric, context_next=context_next, prompt_mp_info=prompt_mp_info, use_injection=use_injection,pos=pos,
                        bundle=bundle, bbox_per_frame=bbox_per_frame, e_t_uc=e_t_uc, uc_emb_copied=uc_emb_copied, step=step) + x
-        x = self.attn2(self.norm2(x), context=context, mask=mask, toeplitz_matric=toeplitz_matric, context_next=context_next, prompt_mp_info=prompt_mp_info, use_injection=use_injection,
+        x = self.attn2(self.norm2(x), context=context, mask=mask, toeplitz_matric=toeplitz_matric, context_next=context_next, prompt_mp_info=prompt_mp_info, use_injection=use_injection,pos=pos,
                        bundle=bundle, bbox_per_frame=bbox_per_frame, e_t_uc=e_t_uc, uc_emb_copied=uc_emb_copied, step=step) + x
         x = self.ff(self.norm3(x)) + x
         return x
