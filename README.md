@@ -76,6 +76,19 @@ $ bash scripts/run.sh
 ```
 The ```--pos``` option represents the position of the bounding box, and you should choose between ```"LR" (Left & Right) or "TD" (Top & Down)```.
 
+## Citation
+```bibtex
+@article{kim2025semantically,
+  title={Semantically complex audio to video generation with audio source separation},
+  author={Kim, Sieun and Jeong, Jaehwan and In, Sumin and Lee, Seung Hyun and Kim, Seungryong and Kim, Saerom and Baek, Wooyeol and Yoon, Sang Ho and Culurciello, Eugenio and Kim, Sangpil},
+  journal={Engineering Applications of Artificial Intelligence},
+  volume={149},
+  pages={110457},
+  year={2025},
+  publisher={Elsevier}
+}
+```
+
 ## Acknowlegement
 Our code is based on several interesting and helpful projects:
 - VideoCrafter : https://github.com/AILab-CVC/VideoCrafter
